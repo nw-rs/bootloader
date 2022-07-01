@@ -16,7 +16,7 @@ embedded-hal = "0.2"
 usbd-dfu = "0.2"
 usb-device = "0.2"
 heapless = "0.7"
-nw-board-support = { path = "../board-support" }
+nw-board-support = { git = "https://github.com/nw-rs/board-support.git" }
 
 [[bin]]
 name = "nw_bootloader"
