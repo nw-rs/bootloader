@@ -9,8 +9,8 @@ use rt::entry;
 
 use core::panic::PanicInfo;
 
-use nw_board_support::*;
 use nw_board_support::hal;
+use nw_board_support::*;
 
 #[inline(never)]
 #[panic_handler]
