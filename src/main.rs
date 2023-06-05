@@ -2,60 +2,47 @@
 #![no_main]
 #![allow(dead_code)]
 
-extern crate cortex_m_rt as rt;
-
-use cortex_m_semihosting::hprintln;
-use rt::entry;
-
 use core::panic::PanicInfo;
+use cortex_m::Peripherals;
+use cortex_m_rt::entry;
+use cortex_m_semihosting::hprintln;
+use nw_board_support::{external_flash, pac};
 
-use nw_board_support::hal;
-use nw_board_support::*;
-
-#[inline(never)]
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(info: &PanicInfo) -> ! {
+    hprintln!("{:?}", info);
     loop {}
 }
 
+const EXT_FLASH_START: u32 = 0x90000000;
+
 #[entry]
 fn main() -> ! {
-    hprintln!("bootloader entry");
-    let dp = unsafe { hal::pac::Peripherals::steal() };
-
-    init_mpu();
-
-    let _clocks = init_clocks(dp.RCC);
-
-    cortex_m::asm::dmb();
-
-    hprintln!("init external flash");
-    external_flash::init();
-    external_flash::set_memory_mapped();
-    hprintln!("memory mapped mode enabled");
-
-    bootloader_mpu_init();
-    hprintln!("mpu configured for boot");
-
-    hprintln!("booting");
-    unsafe { cortex_m::asm::bootload(0x90000000u32 as *const u32) }
-}
-
-fn bootloader_mpu_init() {
-    cortex_m::asm::dmb();
-
     unsafe {
-        let mpu = &*cortex_m::peripheral::MPU::PTR;
+        let dp = pac::Peripherals::steal();
 
-        mpu.ctrl.write(0);
+        dp.RCC.apb2enr.write(|w| w.syscfgen().set_bit());
 
-        mpu.rnr.write(7);
-        mpu.rbar.write(0x9000_0000);
-        mpu.rasr.write(1);
+        dp.RCC.ahb1enr.write(|w| w.gpioben().set_bit());
 
-        mpu.ctrl.write(1);
+        dp.GPIOB
+            .moder
+            .write(|w| w.moder5().output().moder4().output().moder0().output());
+        dp.GPIOB
+            .odr
+            .write(|w| w.odr5().high().odr4().low().odr0().low());
     }
 
-    cortex_m::asm::dsb();
-    cortex_m::asm::isb();
+    external_flash::init();
+    external_flash::set_memory_mapped();
+
+    unsafe {
+        let p = Peripherals::steal();
+
+        let mut delay = cortex_m::delay::Delay::new(p.SYST, 25_000_000);
+
+        delay.delay_ms(500);
+
+        cortex_m::asm::bootload(EXT_FLASH_START as *const u32)
+    }
 }
