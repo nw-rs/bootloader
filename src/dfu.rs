@@ -1,17 +1,15 @@
 use usbd_dfu::DFUMemIO;
 
-use heapless::Vec;
-
 use nw_board_support::external_flash;
 
 pub struct QspiDfu {
-    buffer: Vec<u8, { Self::TRANSFER_SIZE as usize * 8 }>,
+    buffer: [u8; Self::TRANSFER_SIZE as usize],
 }
 
 impl QspiDfu {
     pub fn new() -> Self {
         QspiDfu {
-            buffer: Vec::new(),
+            buffer: [0; Self::TRANSFER_SIZE as usize],
         }
     }
 }
@@ -26,7 +24,7 @@ impl DFUMemIO for QspiDfu {
 
     const HAS_UPLOAD: bool = true;
 
-    const MANIFESTATION_TOLERANT: bool = false;
+    const MANIFESTATION_TOLERANT: bool = true;
 
     const PROGRAM_TIME_MS: u32 = 5;
 
@@ -41,17 +39,11 @@ impl DFUMemIO for QspiDfu {
     const TRANSFER_SIZE: u16 = 128;
 
     fn store_write_buffer(&mut self, src: &[u8]) -> Result<(), ()> {
-        self.buffer.clear();
-        if let Ok(()) = self.buffer.extend_from_slice(src) {
-            Ok(())
-        } else {
-            Err(())
-        }
+        self.buffer[..src.len()].copy_from_slice(src);
+        Ok(())
     }
 
     fn read(&mut self, address: u32, length: usize) -> Result<&[u8], usbd_dfu::DFUMemError> {
-        self.buffer.clear();
-
         Ok(unsafe { core::slice::from_raw_parts(address as *const u8, length) })
     }
 
@@ -74,6 +66,7 @@ impl DFUMemIO for QspiDfu {
     }
 
     fn manifestation(&mut self) -> Result<(), usbd_dfu::DFUManifestationError> {
-        loop {}
+        external_flash::shutdown();
+        cortex_m::peripheral::SCB::sys_reset();
     }
 }
