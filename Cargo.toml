@@ -12,13 +12,9 @@ homepage = "https://github.com/willemml/rustworks"
 cortex-m = "0.7"
 cortex-m-rt = "0.7"
 cortex-m-semihosting = "0.5.0"
-fugit = "0.3.7"
-nw-board-support = { git = "https://github.com/nw-rs/board-support.git" }
+nw-board-support = { git = "https://github.com/nw-rs/board-support.git", features = ["usb", "dfu"] }
 panic-probe = { version = "0.3.1" }
-usb-device = "0.2"
-usbd-dfu = "0.3"
-synopsys-usb-otg = {version = "0.3", features = ["fs", "cortex-m"] }
-stm32-usbd = { version = "0.6" }
+
 
 [[bin]]
 name = "nw_bootloader"

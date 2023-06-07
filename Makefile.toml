@@ -26,4 +26,5 @@ args = [
 		"stm32f730V8Tx",
     "--chip-description-path",
 		"stm32f730v8t6.yaml",
+    "--release",
 ]
