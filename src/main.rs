@@ -116,9 +116,7 @@ fn main() -> ! {
     external_flash::init();
 
     // Check if "4" is pressed on the keypad, if so don't boot.
-    if true {
-        init_clocks();
-
+    if gpioc.idr.read().idr0().is_low() {
         // Turn off the LED
         gpiob
             .odr
@@ -135,6 +133,8 @@ fn main() -> ! {
 
         let bus = usb::get_usb_bus_allocator(216_000_000, unsafe { &mut EP_MEMORY });
 
+        init_clocks();
+
         let dfu_mem = dfu::QspiDfu::new();
 
         let mut dfu = usbd_dfu::DFUClass::new(&bus, dfu_mem);
@@ -150,7 +150,7 @@ fn main() -> ! {
         let mut usb_dev = usb_device::device::UsbDeviceBuilder::new(&bus, usb_id)
             .manufacturer("Numworks")
             .product("RustWorks Bootloader")
-            .serial_number("0000001")
+            .serial_number("TEST")
             .device_class(0xFE)
             .device_sub_class(0x01)
             .build();

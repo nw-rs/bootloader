@@ -1,7 +1,5 @@
-pub use stm32_usbd;
-pub use synopsys_usb_otg;
-use synopsys_usb_otg::UsbPeripheral;
-pub use usb_device;
+use synopsys_usb_otg;
+use usb_device;
 
 pub struct USB {
     hclk: u32,
@@ -11,31 +9,28 @@ pub fn get_usb_bus_allocator(
     hclk: u32,
     ep_memory: &'static mut [u32],
 ) -> usb_device::class_prelude::UsbBusAllocator<UsbBusType> {
-    USB::enable();
-    
+    let rcc = unsafe { &*crate::pac::RCC::ptr() };
+    let gpioa = unsafe { &*crate::pac::GPIOA::ptr() };
+
+    rcc.ahb1enr.modify(|_, w| w.gpioaen().set_bit());
+    gpioa.afrh.modify(|_, w| w.afrh11().af10().afrh12().af10());
+    gpioa
+        .moder
+        .modify(|_, w| w.moder11().alternate().moder12().alternate());
+    gpioa.ospeedr.modify(|_, w| {
+        w.ospeedr11()
+            .very_high_speed()
+            .ospeedr12()
+            .very_high_speed()
+    });
+
     let usb = USB { hclk };
-    
+
     UsbBusType::new(usb, ep_memory)
 }
 
 impl USB {
     pub fn new(hclk: u32) -> Self {
-        let rcc = unsafe { &*crate::pac::RCC::ptr() };
-        let gpioa = unsafe { &*crate::pac::GPIOA::ptr() };
-
-        rcc.ahb1enr.modify(|_, w| w.gpioaen().set_bit());
-        gpioa.afrh.modify(|_, w| w.afrh11().af10().afrh12().af10());
-        gpioa
-            .moder
-            .modify(|_, w| w.moder11().alternate().moder12().alternate());
-        gpioa.ospeedr.modify(|_, w| {
-            w.ospeedr11()
-                .very_high_speed()
-                .ospeedr12()
-                .very_high_speed()
-        });
-        gpioa.pupdr.modify(|_,w|w.pupdr11().floating().pupdr12().floating());
-
         Self { hclk }
     }
 }
